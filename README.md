@@ -1,3 +1,14 @@
+---
+title: TrafficVision AI
+emoji: 🚦
+colorFrom: blue
+colorTo: red
+sdk: docker
+app_port: 8501
+pinned: false
+license: mit
+---
+
 # TrafficVision AI
 ## Automated Traffic Violation Detection Using Computer Vision
 
@@ -27,34 +38,30 @@ Open browser at http://localhost:8501
 ```
 TrafficVisionAI/
 ├── app.py              ← Main Streamlit UI
-├── detector.py         ← YOLOv8 detection
+├── detector.py         ← YOLOv8 multi-model detection
 ├── preprocessor.py     ← Image enhancement
 ├── ocr.py              ← License plate OCR
 ├── evidence.py         ← PDF report generation
 ├── requirements.txt    ← Dependencies
+├── Dockerfile           ← Hugging Face Spaces deployment
+├── packages.txt          ← System-level dependencies
 ├── TRAINING_COLAB.py   ← Google Colab training script
 └── models/
-    └── traffic_violations.pt  ← Put trained model here
+    ├── traffic_violations.pt
+    ├── seatbelt.pt
+    ├── illegal_parking.pt
+    ├── stopline.pt
+    ├── wrong_side.pt
+    ├── triple_riding.pt
+    ├── plate_detector.pt
+    └── redlight_detector.pt
 ```
-
----
-
-## Training Your Own Model (Google Colab)
-
-1. Open TRAINING_COLAB.py
-2. Copy cells into a new Google Colab notebook
-3. Get free Roboflow API key at roboflow.com
-4. Run all cells (~1-2 hours on free GPU)
-5. Download best.pt and put in models/ folder
 
 ---
 
 ## Datasets Used
 
-- Helmet detection: Roboflow Universe
-- Seatbelt detection: Kaggle
-- License plates: Indian License Plate dataset
-- Vehicle detection: YOLOv8 pretrained (COCO)
+All datasets sourced from Roboflow Universe, trained on Google Colab (free T4 GPU).
 
 ---
 
@@ -68,16 +75,19 @@ TrafficVisionAI/
 6. Red-light violation
 7. Illegal parking
 
+Plus license plate detection and OCR.
+
 ---
 
 ## Tech Stack
 
 | Component | Technology |
 |-----------|-----------|
-| Object detection | YOLOv8 (Ultralytics) |
+| Object detection | YOLOv8 (Ultralytics) — 7 specialized models |
 | Image processing | OpenCV |
 | OCR | EasyOCR |
 | Web UI | Streamlit |
 | PDF reports | ReportLab |
 | Language | Python 3.10+ |
 | Training | Google Colab (free GPU) |
+| Deployment | Hugging Face Spaces (Docker) |
