@@ -81,6 +81,9 @@ else:
 
 tabs = st.tabs(["🔍 Detect Violations", "📊 Analytics", "📈 Performance", "ℹ️ About"])
 
+# ── Classes that represent actual vehicles (not people, not compliance labels) ──
+VEHICLE_CLASSES = {"car", "truck", "bus", "motorcycle", "bicycle", "vehicle", "rider"}
+
 with tabs[0]:
     col_left, col_right = st.columns([1, 1], gap="large")
 
@@ -122,19 +125,27 @@ with tabs[0]:
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 evidence_pil = create_evidence_image(enhanced, detections, timestamp)
 
-                st.image(evidence_pil, caption="Detection result", width="stretch")
+                st.image(evidence_pil, caption="Detection result", use_container_width=True)
 
                 if debug_mode:
                     with st.expander("🔍 Per-model debug output", expanded=True):
                         for line in debug_log:
                             st.code(line)
 
+                # ── Fixed counts ──────────────────────────────────────────────
                 violations = [d for d in detections if d["is_violation"]]
-                vehicles = [d for d in detections if not d["is_violation"]]
+
+                # Only count actual vehicle classes — excludes person, pedestrian,
+                # compliance labels (seatbelt_ok, helmet_ok), and license plates.
+                vehicles = [
+                    d for d in detections
+                    if d["class_name"] in VEHICLE_CLASSES
+                ]
+                # ─────────────────────────────────────────────────────────────
 
                 st.markdown("---")
                 m1, m2, m3 = st.columns(3)
-                m1.metric("Violations", len(violations), delta=None)
+                m1.metric("Violations", len(violations))
                 m2.metric("Vehicles detected", len(vehicles))
                 m3.metric("Total detections", len(detections))
 
@@ -229,13 +240,13 @@ with tabs[2]:
     )
 
     perf_data = [
-        {"Model": "Helmet compliance",     "Dataset size": "689 images",  "mAP@50": 88.3, "Precision": 88.3, "Recall": 82.3, "Status": "Trained & validated"},
-        {"Model": "Seatbelt compliance",   "Dataset size": "806 images",  "mAP@50": 76.5, "Precision": 75.1, "Recall": 71.8, "Status": "Trained & validated"},
-        {"Model": "Illegal parking",       "Dataset size": "1,221 images","mAP@50": 86.3, "Precision": 79.4, "Recall": 81.1, "Status": "Trained & validated"},
-        {"Model": "Stop-line violation",   "Dataset size": "495 images",  "mAP@50": 95.7, "Precision": 91.8, "Recall": 91.1, "Status": "Trained & validated"},
-        {"Model": "License plate detection","Dataset size": "833 images", "mAP@50": 96.0, "Precision": 94.1, "Recall": 93.3, "Status": "Trained & validated"},
-        {"Model": "Triple riding",         "Dataset size": "105 images",  "mAP@50": None, "Precision": None, "Recall": None, "Status": "Trained — benchmark pending"},
-        {"Model": "Red-light violation",   "Dataset size": "2,912 images","mAP@50": None, "Precision": None, "Recall": None, "Status": "Trained — benchmark pending"},
+        {"Model": "Helmet compliance",      "Dataset size": "689 images",   "mAP@50": 88.3, "Precision": 88.3, "Recall": 82.3, "Status": "Trained & validated"},
+        {"Model": "Seatbelt compliance",    "Dataset size": "806 images",   "mAP@50": 76.5, "Precision": 75.1, "Recall": 71.8, "Status": "Trained & validated"},
+        {"Model": "Illegal parking",        "Dataset size": "1,221 images", "mAP@50": 86.3, "Precision": 79.4, "Recall": 81.1, "Status": "Trained & validated"},
+        {"Model": "Stop-line violation",    "Dataset size": "495 images",   "mAP@50": 95.7, "Precision": 91.8, "Recall": 91.1, "Status": "Trained & validated"},
+        {"Model": "License plate detection","Dataset size": "833 images",   "mAP@50": 96.0, "Precision": 94.1, "Recall": 93.3, "Status": "Trained & validated"},
+        {"Model": "Triple riding",          "Dataset size": "105 images",   "mAP@50": None, "Precision": None, "Recall": None, "Status": "Trained — benchmark pending"},
+        {"Model": "Red-light violation",    "Dataset size": "2,912 images", "mAP@50": None, "Precision": None, "Recall": None, "Status": "Trained — benchmark pending"},
     ]
 
     df_perf = pd.DataFrame(perf_data)
@@ -252,18 +263,20 @@ with tabs[2]:
         chart_df = valid.set_index("Model")[["mAP@50", "Precision", "Recall"]]
         st.bar_chart(chart_df)
 
-        avg_map = valid["mAP@50"].mean()
+        avg_map  = valid["mAP@50"].mean()
         avg_prec = valid["Precision"].mean()
-        avg_rec = valid["Recall"].mean()
+        avg_rec  = valid["Recall"].mean()
 
         c1, c2, c3 = st.columns(3)
-        c1.metric("Average mAP@50", f"{avg_map:.1f}%")
+        c1.metric("Average mAP@50",    f"{avg_map:.1f}%")
         c2.metric("Average Precision", f"{avg_prec:.1f}%")
-        c3.metric("Average Recall", f"{avg_rec:.1f}%")
+        c3.metric("Average Recall",    f"{avg_rec:.1f}%")
 
         avg_f1 = 2 * (avg_prec * avg_rec) / (avg_prec + avg_rec)
-        st.caption(f"Estimated average F1-score across validated models: **{avg_f1:.1f}%** "
-                   f"(computed as the harmonic mean of average precision and recall)")
+        st.caption(
+            f"Estimated average F1-score across validated models: **{avg_f1:.1f}%** "
+            f"(computed as the harmonic mean of average precision and recall)"
+        )
 
     st.markdown("---")
     st.markdown("""
@@ -288,10 +301,10 @@ with tabs[3]:
     st.markdown("""
     ### About TrafficVision AI
 
-    **Problem:** Manual inspection of traffic camera footage is slow, 
+    **Problem:** Manual inspection of traffic camera footage is slow,
     inconsistent, and resource-heavy.
 
-    **Solution:** An end-to-end AI pipeline that automatically detects, 
+    **Solution:** An end-to-end AI pipeline that automatically detects,
     classifies, and documents traffic violations.
 
     #### How it works
